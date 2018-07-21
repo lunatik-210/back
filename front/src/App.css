@@ -1,0 +1,31 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 10px;
+
+  font-size: 10px;
+}
+
+.app .app__row {
+  display: flex;
+  flex-direction: row;
+}
+
+.app .app__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;   
+}
+
+.app .app__cell {
+  padding: 5px;
+}
+
+.app .app__cell.app__cell--header {
+  cursor: pointer;
+}
+
+.app .app__input {
+  width: 100%;
+  min-width: 30px;
+}
