@@ -109,12 +109,13 @@ export let Companies = types
         }
     }))
     .actions(self => ({
-        fetch: flow(function*() {
+        fetch: flow(function*({limit}) {
+            self.companies = [];
             let companies = yield getRoot(self).fetch(() => getCompanies());
 
             for (let key in companies) {
                 let companyTitle = companies[key];
-                let companyInfo = yield getRoot(self).fetch(() => getCompany(companyTitle));
+                let companyInfo = yield getRoot(self).fetch(() => getCompany(companyTitle, limit));
 
                 self.companies.push({
                     title: companyTitle,

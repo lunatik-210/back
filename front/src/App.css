@@ -7,25 +7,86 @@
   font-size: 10px;
 }
 
+.app .app__header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 40px;
+}
+
+.app .app__limit {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.app .app__limit span {
+  margin-right: 20px;
+}
+
+.app .app__min-max {
+  display: flex;
+  flex-direction: column;
+}
+
+.app .app__grid {
+  display: grid;
+}
+
+.app .app__cell {
+  display: flex;
+  flex-direction: column;
+
+  padding: 5px;
+  text-align: center;
+}
+
+.app .app__cell--text {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.app .app__cell.app__cell--header {
+  justify-content: space-between;
+  cursor: default;
+}
+
+.app .app__input {
+  width: 100%;
+  min-width: 20px;
+}
+
 .app .app__row {
   display: flex;
   flex-direction: row;
 }
 
-.app .app__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;   
+.app .app__row.app__row--between {
+  justify-content: space-between;
 }
 
-.app .app__cell {
-  padding: 5px;
-}
-
-.app .app__cell.app__cell--header {
+.app .app__nav-btn,
+.app .app__close-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
   cursor: pointer;
+  color: grey;
 }
 
-.app .app__input {
-  width: 100%;
-  min-width: 30px;
+.app .app__nav-btn:hover,
+.app .app__close-btn:hover {
+  opacity: 0.7;
 }
+
+.app .app__deleted-columns {
+  display: flex;
+  flex-direction: row;
+}
+
+.app .app__deleted-column {
+  
+}
+
+

@@ -11,11 +11,19 @@ import './App.css';
 let dumbApp = dumbBem('app');
 let AppWrapper = tx(dumbApp)('div');
 
+let Header = tx([{ element: 'header' }, dumbApp])('div');
+let Limit = tx([{ element: 'limit' }, dumbApp])('div');
+
 let Grid = tx([{ element: 'grid' }, dumbApp])('div');
 let Cell = tx([{ element: 'cell' }, dumbApp])('div');
-let Row = tx([{ element: 'row' }, dumbApp])('div');
+let MinMax = tx([{ element: 'min-max' }, dumbApp])('div');
 let Input = tx([{ element: 'input' }, dumbApp])('input');
+let Row = tx([{ element: 'row' }, dumbApp])('div');
 
+let NavButton = tx([{ element: 'nav-btn' }, dumbApp])('div');
+
+let DeletedColumns = tx([{ element: 'deleted-columns' }, dumbApp])('div');
+let DeletedColumn = tx([{ element: 'deleted-column' }, dumbApp])('button');
 
 class App extends Component {
   constructor(props) {
@@ -24,6 +32,8 @@ class App extends Component {
     this.state = {
       sortBy: undefined,
       orderDirection: true,
+      grouped: false,
+      limit: 10,
       filters: {},
       columns: [
         {name: 'Title', type: 'string'},
@@ -47,7 +57,8 @@ class App extends Component {
         {name: 'ROI', type: 'number'},
         {name: 'Revenue', type: 'number'},
         {name: 'Visits', type: 'number'}
-      ]
+      ],
+      closedColumns: []
     }
 
     _.bindAll(this, [
@@ -55,25 +66,56 @@ class App extends Component {
       'setFilterMax',
       'renderCompnies',
       'setOrderBy',
-      'setFilter'
+      'setLimit',
+      'setFilter',
+      'moveLeft',
+      'moveRight',
+      'closeColumn',
+      'restoreColumn'
     ]);
   }
 
   componentDidMount() {
-    this.props.stores.companiesStore.fetch();
+    this.props.stores.companiesStore.fetch({limit: this.state.limit});
   }
 
   render() {
+    let gridStyle = {
+      gridTemplateColumns: '1fr '.repeat(this.state.columns.length)
+    };
     return (
       <AppWrapper>
-        <Grid>
+        <Header>
+          <Limit>
+            <span>Limit:</span>
+            <input placeholder='Limit:' defaultValue={this.state.limit} onChange={(event) => this.setLimit(event.target.value)} />
+          </Limit>
+          <button
+            onClick={() => this.setState({grouped: !this.state.grouped})}
+          >{this.state.grouped ? 'Ungroup' : 'Group by company'}</button>
+          <DeletedColumns>
+            {
+              this.state.closedColumns.map((column, id) => (
+                <DeletedColumn onClick={() => this.restoreColumn(id)} key={id}>{column.name}</DeletedColumn>
+              ))
+            }
+          </DeletedColumns>
+        </Header>
+
+        <Grid style={gridStyle}>
           {
             this.state.columns.map((field, id) => (
               <Cell
                 modifier='header'
                 key={`title${id}`}
-                onClick={() => this.setOrderBy(field.name)}
-              >{field.name}</Cell>
+              > 
+                <Row modifier='between'>
+                  <NavButton onClick={() => this.moveLeft(id)}>{'<'}</NavButton>
+                  <NavButton onClick={() => this.closeColumn(id)}>X</NavButton>
+                  <NavButton onClick={() => this.moveRight(id)}>{'>'}</NavButton>
+                </Row>
+                <span onClick={() => this.setOrderBy(field.name)}>{field.name}</span>
+              </Cell>
             ))
           }
           {
@@ -83,10 +125,10 @@ class App extends Component {
               >
                 {
                   field.type === 'number' ? (
-                    <Row>
+                    <MinMax>
                       <Input placeholder='from' onChange={(event) => this.setFilterMin(field, event.target.value)} />
                       <Input placeholder='to' onChange={(event) => this.setFilterMax(field, event.target.value)} />
-                    </Row>
+                    </MinMax>
                   ) : (
                     <Input onChange={(event) => this.setFilter(field, event.target.value)} />
                   )
@@ -154,6 +196,17 @@ class App extends Component {
     });
   }
 
+  setLimit(limit) {
+    let limitNumber = parseInt(limit, 10);
+
+    if (_.isNaN(limitNumber)) {
+      limitNumber = undefined;
+    }
+
+    this.setState({limitNumber});
+    this.props.stores.companiesStore.fetch({limit: limitNumber});
+  }
+
   renderCompnies() {
     let companiesInfo = this.props.stores.companiesStore.table({
       sortBy: this.state.sortBy,
@@ -161,16 +214,70 @@ class App extends Component {
       filters: this.state.filters
     });
 
+    if (this.state.grouped) {
+      console.log(_.groupBy(companiesInfo, 'Title'));
+    }
+
     return companiesInfo.map((infoRow, id1) => {
       return (
         <React.Fragment key={`${infoRow.Title}${id1}`}> 
           {
             this.state.columns.map((cell, id2) => (
-              <Cell key={`${infoRow.Title}${id1}${id2}`}>{_.isNaN(infoRow[cell.name]) ? '' : infoRow[cell.name]}</Cell>
+              <Cell
+                modifier='text'
+                key={`${infoRow.Title}${id1}${id2}`}
+              >{_.isNaN(infoRow[cell.name]) ? '' : infoRow[cell.name]}</Cell>
             ))
           }
         </React.Fragment>
       )
+    });
+  }
+
+  moveLeft(id) {
+    let columns = [...this.state.columns];
+
+    if (id-1 < 0) return;    
+
+    let mem = columns[id];
+    columns[id] = columns[id-1];
+    columns[id-1] = mem;
+
+    this.setState({columns});
+  }
+
+  moveRight(id) {
+    let columns = this.state.columns;
+
+    if (id+1 > columns.length-1) return;
+    
+    let mem = columns[id];
+    columns[id] = columns[id+1];
+    columns[id+1] = mem;
+
+    this.setState({columns});
+  }
+
+  closeColumn(id) {
+    let columns = [...this.state.columns];
+    let closedColumns = this.state.closedColumns;
+
+    this.setState({
+      columns,
+      closedColumns: [{...columns.splice(id, 1)[0], id}, ...closedColumns]
+    });
+  }
+
+  restoreColumn(id) {
+    let closedColumns = [...this.state.closedColumns];
+    let columns = [...this.state.columns];
+    let column = closedColumns.splice(id, 1)[0];
+    let newColumnId = column.id < columns.length ? column.id : columns.length;
+    columns.splice(newColumnId, 0, {name: column.name, type: column.type});
+
+    this.setState({
+      columns,
+      closedColumns
     });
   }
 }
