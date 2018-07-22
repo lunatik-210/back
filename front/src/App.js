@@ -29,6 +29,8 @@ let DeletedColumnsWrp = tx([{ element: 'deleted-columns-wrapper' }, dumbApp])('d
 let DeletedColumns = tx([{ element: 'deleted-columns' }, dumbApp])('div');
 let DeletedColumn = tx([{ element: 'deleted-column' }, dumbApp])('button');
 
+let TitleCol = {name: 'Title', type: 'string', space: '2fr'};
+
 
 class App extends Component {
   constructor(props) {
@@ -41,27 +43,27 @@ class App extends Component {
       limit: 10,
       filters: {},
       columns: [
-        {name: 'Title', type: 'string'},
-        {name: 'AP', type: 'number'},
-        {name: 'CPV', type: 'number'},
-        {name: 'CR', type: 'number'},
-        {name: 'CTR', type: 'number'},
-        {name: 'CV', type: 'number'},
-        {name: 'Clicks', type: 'number'},
-        {name: 'Conversion Cap', type: 'number'},
-        {name: 'Conversions', type: 'number'},
-        {name: 'Conversions as Counted for Conversion Cap', type: 'number'},
-        {name: 'Cost', type: 'number'},
-        {name: 'Country', type: 'string'},
-        {name: 'EPC', type: 'number'},
-        {name: 'EPV', type: 'number'},
-        {name: 'Errors', type: 'number'},
-        {name: 'Lander', type: 'string'},
-        {name: 'Offer', type: 'string'},
-        {name: 'Profit', type: 'number'},
-        {name: 'ROI', type: 'number'},
-        {name: 'Revenue', type: 'number'},
-        {name: 'Visits', type: 'number'}
+        TitleCol,
+        {name: 'AP', type: 'number', space: '1fr'},
+        {name: 'CPV', type: 'number', space: '1fr'},
+        {name: 'CR', type: 'number', space: '1fr'},
+        {name: 'CTR', type: 'number', space: '1fr'},
+        {name: 'CV', type: 'number', space: '1fr'},
+        {name: 'Clicks', type: 'number', space: '1fr'},
+        {name: 'Conversion Cap', type: 'number', space: '1fr'},
+        {name: 'Conversions', type: 'number', space: '1fr'},
+        {name: 'Conversions as Counted for Conversion Cap', type: 'number', space: '1fr'},
+        {name: 'Cost', type: 'number', space: '1fr'},
+        {name: 'Country', type: 'string', space: '2fr'},
+        {name: 'EPC', type: 'number', space: '1fr'},
+        {name: 'EPV', type: 'number', space: '1fr'},
+        {name: 'Errors', type: 'number', space: '1fr'},
+        {name: 'Lander', type: 'string', space: '2fr'},
+        {name: 'Offer', type: 'string', space: '2fr'},
+        {name: 'Profit', type: 'number', space: '1fr'},
+        {name: 'ROI', type: 'number', space: '1fr'},
+        {name: 'Revenue', type: 'number', space: '1fr'},
+        {name: 'Visits', type: 'number', space: '1fr'}
       ],
       closedColumns: []
     }
@@ -113,7 +115,7 @@ class App extends Component {
           }
         </Header>
 
-        <Grid style={{gridTemplateColumns: `repeat(${columns.length}, 1fr)`}}>
+        <Grid style={{gridTemplateColumns: `${columns.reduce((res, column) => `${res} ${column.space}`, '')}`}}>
           {
             columns.map((field, id) => (
               <Cell
@@ -283,7 +285,7 @@ class App extends Component {
     let columns = [...this.getColumns()];
     let column = closedColumns.splice(id, 1)[0];
     let newColumnId = column.id < columns.length ? column.id : columns.length;
-    columns.splice(newColumnId, 0, {name: column.name, type: column.type});
+    columns.splice(newColumnId, 0, {name: column.name, type: column.type, space: column.space});
 
     this.setState({
       columns,
@@ -299,7 +301,7 @@ class App extends Component {
     if (grouped) {
       columns = _.reject(columns, {name: 'Title'});
     } else {
-      columns.unshift({name: 'Title', type: 'string'});
+      columns.unshift(TitleCol);
       closedColumns = _.reject(closedColumns, {name: 'Title'});
     }
 
