@@ -5,6 +5,8 @@ import {inject, observer} from 'mobx-react';
 import dumbBem from 'dumb-bem';
 import tx from 'transform-props-with';
 
+import ReactTooltip from 'react-tooltip';
+
 import './App.css';
 
 
@@ -21,9 +23,12 @@ let Input = tx([{ element: 'input' }, dumbApp])('input');
 let Row = tx([{ element: 'row' }, dumbApp])('div');
 
 let NavButton = tx([{ element: 'nav-btn' }, dumbApp])('div');
+let GroupByBtn = tx([{ element: 'group-by-btn' }, dumbApp])('button');
 
+let DeletedColumnsWrp = tx([{ element: 'deleted-columns-wrapper' }, dumbApp])('div');
 let DeletedColumns = tx([{ element: 'deleted-columns' }, dumbApp])('div');
 let DeletedColumn = tx([{ element: 'deleted-column' }, dumbApp])('button');
+
 
 class App extends Component {
   constructor(props) {
@@ -90,16 +95,22 @@ class App extends Component {
             <span>Limit:</span>
             <input placeholder='Limit:' defaultValue={this.state.limit} onChange={(event) => this.setLimit(event.target.value)} />
           </Limit>
-          <button
+          <GroupByBtn
             onClick={() => this.groupByTitle()}
-          >{this.state.grouped ? 'Ungroup' : 'Group by company'}</button>
-          <DeletedColumns>
-            {
-              this.state.closedColumns.map((column, id) => (
-                <DeletedColumn onClick={() => this.restoreColumn(id)} key={id}>{column.name}</DeletedColumn>
-              ))
-            }
-          </DeletedColumns>
+          >{this.state.grouped ? 'Ungroup' : 'Group by company'}</GroupByBtn>
+          {
+            this.state.closedColumns.length !== 0 &&
+            <DeletedColumnsWrp>
+              <h1>Restore columns</h1>
+              <DeletedColumns>
+                {
+                  this.state.closedColumns.map((column, id) => (
+                    <DeletedColumn onClick={() => this.restoreColumn(id)} key={id}>{column.name}</DeletedColumn>
+                  ))
+                }
+              </DeletedColumns>
+            </DeletedColumnsWrp>
+          }
         </Header>
 
         <Grid style={{gridTemplateColumns: `repeat(${columns.length}, 1fr)`}}>
@@ -175,13 +186,19 @@ class App extends Component {
       return (
         <React.Fragment key={`${infoRow.Title}${id1}`}> 
           {
-            columns.map((cell, id2) => (
-              <Cell
-                modifier='text'
-                key={`${infoRow.Title}${id1}${id2}`}
-              >{_.isNaN(infoRow[cell.name]) ? '' : infoRow[cell.name]}</Cell>
-            ))
+            columns.map((cell, id2) => {
+              let text = _.isNaN(infoRow[cell.name]) ? '' : infoRow[cell.name];
+              return (
+                <Cell
+                  data-tip={text}
+                  data-delay-show='600'
+                  modifier='text'
+                  key={`${infoRow.Title}${id1}${id2}`}
+                >{text}</Cell>
+              )
+            })
           }
+          <ReactTooltip />
         </React.Fragment>
       )
     });
@@ -277,16 +294,19 @@ class App extends Component {
   groupByTitle() {
     let grouped = !this.state.grouped;
     let columns = [...this.state.columns];
+    let closedColumns = [...this.state.closedColumns];
 
     if (grouped) {
       columns = _.reject(columns, {name: 'Title'});
     } else {
       columns.unshift({name: 'Title', type: 'string'});
+      closedColumns = _.reject(closedColumns, {name: 'Title'});
     }
 
     this.setState({
       grouped,
-      columns
+      columns,
+      closedColumns
     });
   }
 
