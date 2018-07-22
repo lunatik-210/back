@@ -33,9 +33,6 @@
 }
 
 .app .app__cell {
-  display: flex;
-  flex-direction: column;
-
   padding: 5px;
   text-align: center;
 }
@@ -46,7 +43,15 @@
   overflow: hidden;
 }
 
+.app .app__cell--title {
+  border-bottom: 1px solid grey;
+  text-align: left;
+  padding: 8px 5px;
+}
+
 .app .app__cell.app__cell--header {
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
   cursor: default;
 }

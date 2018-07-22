@@ -62,16 +62,17 @@ class App extends Component {
     }
 
     _.bindAll(this, [
-      'setFilterMin',
-      'setFilterMax',
       'renderCompnies',
+      'renderRowsGroup',
+      'setRangeFilter',
+      'setTextFilter',
       'setOrderBy',
       'setLimit',
-      'setFilter',
-      'moveLeft',
-      'moveRight',
+      'move',
       'closeColumn',
-      'restoreColumn'
+      'restoreColumn',
+      'getColumns',
+      'groupByTitle'
     ]);
   }
 
@@ -80,9 +81,8 @@ class App extends Component {
   }
 
   render() {
-    let gridStyle = {
-      gridTemplateColumns: '1fr '.repeat(this.state.columns.length)
-    };
+    let columns = this.getColumns();
+
     return (
       <AppWrapper>
         <Header>
@@ -91,7 +91,7 @@ class App extends Component {
             <input placeholder='Limit:' defaultValue={this.state.limit} onChange={(event) => this.setLimit(event.target.value)} />
           </Limit>
           <button
-            onClick={() => this.setState({grouped: !this.state.grouped})}
+            onClick={() => this.groupByTitle()}
           >{this.state.grouped ? 'Ungroup' : 'Group by company'}</button>
           <DeletedColumns>
             {
@@ -102,79 +102,108 @@ class App extends Component {
           </DeletedColumns>
         </Header>
 
-        <Grid style={gridStyle}>
+        <Grid style={{gridTemplateColumns: `repeat(${columns.length}, 1fr)`}}>
           {
-            this.state.columns.map((field, id) => (
+            columns.map((field, id) => (
               <Cell
                 modifier='header'
                 key={`title${id}`}
               > 
                 <Row modifier='between'>
-                  <NavButton onClick={() => this.moveLeft(id)}>{'<'}</NavButton>
+                  <NavButton onClick={() => this.move(id, 'left')}>{'<'}</NavButton>
                   <NavButton onClick={() => this.closeColumn(id)}>X</NavButton>
-                  <NavButton onClick={() => this.moveRight(id)}>{'>'}</NavButton>
+                  <NavButton onClick={() => this.move(id, 'right')}>{'>'}</NavButton>
                 </Row>
                 <span onClick={() => this.setOrderBy(field.name)}>{field.name}</span>
               </Cell>
             ))
           }
           {
-            this.state.columns.map((field, id) => (
+            columns.map((field, id) => (
               <Cell
                 key={`filter${id}`}
               >
                 {
                   field.type === 'number' ? (
                     <MinMax>
-                      <Input placeholder='from' onChange={(event) => this.setFilterMin(field, event.target.value)} />
-                      <Input placeholder='to' onChange={(event) => this.setFilterMax(field, event.target.value)} />
+                      <Input placeholder='from' onChange={(event) => this.setRangeFilter(field, event.target.value, 'min')} />
+                      <Input placeholder='to' onChange={(event) => this.setRangeFilter(field, event.target.value, 'max')} />
                     </MinMax>
                   ) : (
-                    <Input onChange={(event) => this.setFilter(field, event.target.value)} />
+                    <Input onChange={(event) => this.setTextFilter(field, event.target.value)} />
                   )
                 }
               </Cell>
             ))
           }
-          {this.renderCompnies()}
+          {this.renderCompnies(columns)}
         </Grid>
       </AppWrapper>
     );
   }
 
-  setFilterMin(field, filterValue) {
+  renderCompnies(columns) {
+    let companies = this.props.stores.companiesStore.companies;
+    let companiesInfo = this.props.stores.companiesStore.table({
+      sortBy: this.state.sortBy,
+      orderDirection: this.state.orderDirection,
+      filters: this.state.filters,
+      groupByTitle: this.state.grouped
+    });
+
+    if (this.state.grouped) {
+      return _.map(companies, (company) => {
+        return (
+          <React.Fragment key={company.title}>
+            <Cell
+              modifier='title'
+              style={{gridColumn: '1 / -1'}}
+              onClick={() => company.trigger()}
+            >{company.title}</Cell>
+            {company.isExpanded && this.renderRowsGroup(companiesInfo[company.title], columns)}
+          </React.Fragment>
+        )
+      })
+    }
+
+    return this.renderRowsGroup(companiesInfo, columns);
+  }
+
+  renderRowsGroup(rows, columns) {
+    if (!rows) return <Cell style={{gridColumn: '1 / -1'}} />;
+    return rows.map((infoRow, id1) => {
+      return (
+        <React.Fragment key={`${infoRow.Title}${id1}`}> 
+          {
+            columns.map((cell, id2) => (
+              <Cell
+                modifier='text'
+                key={`${infoRow.Title}${id1}${id2}`}
+              >{_.isNaN(infoRow[cell.name]) ? '' : infoRow[cell.name]}</Cell>
+            ))
+          }
+        </React.Fragment>
+      )
+    });
+  }
+
+  setRangeFilter(field, filterValue, rangeBorderType = 'min') {
     let filters = this.state.filters;
 
     if (filterValue) {
       filters[field.name] = {
         type: field.type,
         ...filters[field.name],
-        min: parseFloat(filterValue)
+        [rangeBorderType]: parseFloat(filterValue)
       }
     } else {
-      delete filters[field.name].min;
+      delete filters[field.name][rangeBorderType];
     }
 
     this.setState({filters});
   }
 
-  setFilterMax(field, filterValue) {
-    let filters = this.state.filters;
-
-    if (filterValue) {
-      filters[field.name] = {
-        type: field.type,
-        ...filters[field.name],
-        max: parseFloat(filterValue)
-      }
-    } else {
-      delete filters[field.name].max;
-    }
-
-    this.setState({filters});
-  }
-
-  setFilter(field, filterValue) {
+  setTextFilter(field, filterValue) {
     let filters = this.state.filters;
 
     if (filterValue) {
@@ -207,59 +236,23 @@ class App extends Component {
     this.props.stores.companiesStore.fetch({limit: limitNumber});
   }
 
-  renderCompnies() {
-    let companiesInfo = this.props.stores.companiesStore.table({
-      sortBy: this.state.sortBy,
-      orderDirection: this.state.orderDirection,
-      filters: this.state.filters
-    });
+  move(id, direction = 'left') {
+    let diff = direction === 'left' ? -1 : 1;
 
-    if (this.state.grouped) {
-      console.log(_.groupBy(companiesInfo, 'Title'));
-    }
+    let columns = [...this.getColumns()];
 
-    return companiesInfo.map((infoRow, id1) => {
-      return (
-        <React.Fragment key={`${infoRow.Title}${id1}`}> 
-          {
-            this.state.columns.map((cell, id2) => (
-              <Cell
-                modifier='text'
-                key={`${infoRow.Title}${id1}${id2}`}
-              >{_.isNaN(infoRow[cell.name]) ? '' : infoRow[cell.name]}</Cell>
-            ))
-          }
-        </React.Fragment>
-      )
-    });
-  }
-
-  moveLeft(id) {
-    let columns = [...this.state.columns];
-
-    if (id-1 < 0) return;    
+    if (direction === 'right' && id+1 > columns.length-1) return;
+    if (direction === 'left' && id-1 < 0) return;
 
     let mem = columns[id];
-    columns[id] = columns[id-1];
-    columns[id-1] = mem;
-
-    this.setState({columns});
-  }
-
-  moveRight(id) {
-    let columns = this.state.columns;
-
-    if (id+1 > columns.length-1) return;
-    
-    let mem = columns[id];
-    columns[id] = columns[id+1];
-    columns[id+1] = mem;
+    columns[id] = columns[id+(1*diff)];
+    columns[id+(1*diff)] = mem;
 
     this.setState({columns});
   }
 
   closeColumn(id) {
-    let columns = [...this.state.columns];
+    let columns = [...this.getColumns()];
     let closedColumns = this.state.closedColumns;
 
     this.setState({
@@ -270,7 +263,7 @@ class App extends Component {
 
   restoreColumn(id) {
     let closedColumns = [...this.state.closedColumns];
-    let columns = [...this.state.columns];
+    let columns = [...this.getColumns()];
     let column = closedColumns.splice(id, 1)[0];
     let newColumnId = column.id < columns.length ? column.id : columns.length;
     columns.splice(newColumnId, 0, {name: column.name, type: column.type});
@@ -279,6 +272,26 @@ class App extends Component {
       columns,
       closedColumns
     });
+  }
+
+  groupByTitle() {
+    let grouped = !this.state.grouped;
+    let columns = [...this.state.columns];
+
+    if (grouped) {
+      columns = _.reject(columns, {name: 'Title'});
+    } else {
+      columns.unshift({name: 'Title', type: 'string'});
+    }
+
+    this.setState({
+      grouped,
+      columns
+    });
+  }
+
+  getColumns() {
+    return this.state.columns;
   }
 }
 
