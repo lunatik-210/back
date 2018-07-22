@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import React, { Component } from 'react';
 import {inject, observer} from 'mobx-react';
+import {DebounceInput} from 'react-debounce-input';
 
 import dumbBem from 'dumb-bem';
 import tx from 'transform-props-with';
@@ -19,7 +20,6 @@ let Limit = tx([{ element: 'limit' }, dumbApp])('div');
 let Grid = tx([{ element: 'grid' }, dumbApp])('div');
 let Cell = tx([{ element: 'cell' }, dumbApp])('div');
 let MinMax = tx([{ element: 'min-max' }, dumbApp])('div');
-let Input = tx([{ element: 'input' }, dumbApp])('input');
 let Row = tx([{ element: 'row' }, dumbApp])('div');
 
 let NavButton = tx([{ element: 'nav-btn' }, dumbApp])('div');
@@ -89,6 +89,10 @@ class App extends Component {
 
   render() {
     let columns = this.getColumns();
+    let inputStyles = {
+        width: '100%',
+        minWidth: '20px'
+    };
 
     return (
       <AppWrapper>
@@ -139,11 +143,21 @@ class App extends Component {
                 {
                   field.type === 'number' ? (
                     <MinMax>
-                      <Input placeholder='from' onChange={(event) => this.setRangeFilter(field, event.target.value, 'min')} />
-                      <Input placeholder='to' onChange={(event) => this.setRangeFilter(field, event.target.value, 'max')} />
+                      <DebounceInput
+                        style={inputStyles}
+                        debounceTimeout={500}
+                        placeholder='from' onChange={(event) => this.setRangeFilter(field, event.target.value, 'min')} />
+                      <DebounceInput
+                        style={inputStyles}
+                        debounceTimeout={500}
+                        placeholder='to' onChange={(event) => this.setRangeFilter(field, event.target.value, 'max')} />
                     </MinMax>
                   ) : (
-                    <Input onChange={(event) => this.setTextFilter(field, event.target.value)} />
+                    <DebounceInput
+                      style={inputStyles}
+                      debounceTimeout={500}
+                      onChange={(event) => this.setTextFilter(field, event.target.value)}
+                    />
                   )
                 }
               </Cell>
@@ -216,7 +230,9 @@ class App extends Component {
         [rangeBorderType]: parseFloat(filterValue)
       }
     } else {
-      delete filters[field.name][rangeBorderType];
+      if (filters[field.name]) {
+        delete filters[field.name][rangeBorderType];
+      }
     }
 
     this.setState({filters});

@@ -61,11 +61,6 @@
   cursor: default;
 }
 
-.app .app__input {
-  width: 100%;
-  min-width: 20px;
-}
-
 .app .app__row {
   display: flex;
   flex-direction: row;
